@@ -66,13 +66,15 @@ struct Settings
     int aspect = 0;       // 0: 16:9, 1: 4:3
     int windowMode = 1;   // 0: windowed, 1: borderless fullscreen
     int antiAliasing = 1; // 0: off, 1: FXAA
+    int anisotropic = 3;  // 0: off, 1..4: 2x, 4x, 8x, 16x
     int sharpening = 40;  // 0..100 %
     bool vsync = true;
     bool showFps = false;
     bool operator==(const Settings &o) const
     {
         return resolution == o.resolution && aspect == o.aspect && windowMode == o.windowMode &&
-               antiAliasing == o.antiAliasing && sharpening == o.sharpening && vsync == o.vsync && showFps == o.showFps;
+               antiAliasing == o.antiAliasing && anisotropic == o.anisotropic && sharpening == o.sharpening &&
+               vsync == o.vsync && showFps == o.showFps;
     }
 };
 
@@ -80,6 +82,7 @@ const char *const kResolutionKey[] = {"1x", "2x", "3x", "4x"};
 const char *const kAspectKey[] = {"16:9", "4:3"};
 const char *const kWindowKey[] = {"windowed", "borderless"};
 const char *const kAaKey[] = {"off", "fxaa"};
+const char *const kAnisoKey[] = {"off", "2x", "4x", "8x", "16x"};
 
 std::string settingsPath() { return std::string(GetApplicationDirectory()) + "GoW2Launcher.ini"; }
 
@@ -120,6 +123,8 @@ Settings loadSettings()
             s.windowMode = indexOf(kWindowKey, 2, value, s.windowMode);
         else if (key == "anti_aliasing")
             s.antiAliasing = indexOf(kAaKey, 2, value, s.antiAliasing);
+        else if (key == "anisotropic")
+            s.anisotropic = indexOf(kAnisoKey, 5, value, s.anisotropic);
         else if (key == "sharpening")
         {
             const int v = std::atoi(value.c_str());
@@ -145,6 +150,7 @@ bool saveSettings(const Settings &s)
         << "aspect_ratio=" << kAspectKey[s.aspect] << "\n"
         << "window_mode=" << kWindowKey[s.windowMode] << "\n"
         << "anti_aliasing=" << kAaKey[s.antiAliasing] << "\n"
+        << "anisotropic=" << kAnisoKey[s.anisotropic] << "\n"
         << "sharpening=" << s.sharpening << "\n"
         << "vsync=" << (s.vsync ? 1 : 0) << "\n"
         << "show_fps=" << (s.showFps ? 1 : 0) << "\n";
@@ -173,9 +179,8 @@ bool g_launching = false;  // the runner is running: the launcher is hidden unti
 double g_launchAt = 0.0;
 constexpr double kQuickExit = 4.0; // a game that exits sooner than this failed to start
 
-// What the runner reads today. The aspect ratio (16:9 is built in), window mode, anti-aliasing and vertical sync have
-// no switch in the runtime yet; sharpening is only on/off (its present pass has a fixed light sharpen). The first three
-// are run.ps1's defaults (Waffle565's play.cmd), kept if the user already set them.
+// What the runner reads (every setting of the Graphics tab). The first three are run.ps1's defaults (Waffle565's
+// play.cmd), kept if the user already set them. Sharpening 0 keeps the bicubic upscale without the CAS sharpen.
 std::vector<std::pair<std::string, std::string>> gameEnvironment(const Settings &s)
 {
     std::vector<std::pair<std::string, std::string>> env;
@@ -184,8 +189,16 @@ std::vector<std::pair<std::string, std::string>> gameEnvironment(const Settings 
         if (!std::getenv(name))
             env.emplace_back(name, value);
     env.emplace_back("PS2X_GS_HW_SCALE", std::to_string(s.resolution + 1));
+    env.emplace_back("GOW_ASPECT", kAspectKey[s.aspect]);
+    env.emplace_back("GOW_FULLSCREEN", s.windowMode == 1 ? "1" : "0");
+    env.emplace_back("GOW_FXAA", s.antiAliasing == 1 ? "1" : "0");
+    env.emplace_back("GOW_ANISO", std::to_string(1 << s.anisotropic)); // 1 (off), 2, 4, 8, 16
+    env.emplace_back("GOW_SCALER", "sharp");
+    char sharpen[16];
+    std::snprintf(sharpen, sizeof(sharpen), "%.2f", s.sharpening / 100.0);
+    env.emplace_back("GOW_SHARPEN", sharpen);
+    env.emplace_back("GOW_VSYNC", s.vsync ? "1" : "0");
     env.emplace_back("GOW_SHOW_FPS", s.showFps ? "1" : "");
-    env.emplace_back("GOW_SCALER", s.sharpening > 0 ? "sharp" : "bilinear");
     return env;
 }
 
@@ -540,14 +553,16 @@ void tabs(ImDrawList *dl)
 }
 
 // a settings row: label and hint on the left, the control drawn by the caller on the right
+constexpr float kRowH = 55.0f; // eight rows fit between the tabs and the footer
+
 float rowTop(ImDrawList *dl, float y, const char *label, const char *hint, bool last)
 {
     const float x = kLeftW + 32.0f;
-    text(dl, g_font.medium, 14, ImVec2(x, y + 12), col(kText), label);
-    text(dl, g_font.regular, 12, ImVec2(x, y + 32), col(kMuted), hint);
+    text(dl, g_font.medium, 14, ImVec2(x, y + 10), col(kText), label);
+    text(dl, g_font.regular, 12, ImVec2(x, y + 29), col(kMuted), hint);
     if (!last)
-        hline(dl, x, kDesignW - 32.0f, y + 59.5f, col(kLine));
-    return y + 30.0f; // vertical centre of the row
+        hline(dl, x, kDesignW - 32.0f, y + kRowH - 0.5f, col(kLine));
+    return y + kRowH * 0.5f; // vertical centre of the row
 }
 
 void combo(const char *id, float centreY, int *value, const char *const *items, int count)
@@ -619,27 +634,30 @@ void graphicsTab(ImDrawList *dl)
     static const char *const kAspect[] = {"16:9 widescreen", "4:3 original"};
     static const char *const kWindow[] = {"Windowed", "Borderless fullscreen"};
     static const char *const kAa[] = {"Off", "FXAA"};
+    static const char *const kAniso[] = {"Off", "2\xC3\x97", "4\xC3\x97", "8\xC3\x97", "16\xC3\x97"};
 
-    float y = kTitleH + kTabsH + 8.0f;
+    float y = kTitleH + kTabsH + 4.0f;
     float c = rowTop(dl, y, "Internal resolution", "Multiplies the PS2 resolution (640\xC3\x97" "448)", false);
     combo("##resolution", c, &g_edit.resolution, kResolution, 4);
-    y += 60.0f;
-    // the hints say which settings the game does not take yet (see gameEnvironment)
-    c = rowTop(dl, y, "Aspect ratio", "16:9 widens the view at the sides (Hor+) \xC2\xB7 coming soon", false);
+    y += kRowH;
+    c = rowTop(dl, y, "Aspect ratio", "16:9 widens the view at the sides (Hor+); 4:3 is the original", false);
     combo("##aspect", c, &g_edit.aspect, kAspect, 2);
-    y += 60.0f;
-    c = rowTop(dl, y, "Window mode", "F12 switches it in game \xC2\xB7 at startup: coming soon", false);
+    y += kRowH;
+    c = rowTop(dl, y, "Window mode", "At startup \xC2\xB7 F12 switches it in game", false);
     combo("##window", c, &g_edit.windowMode, kWindow, 2);
-    y += 60.0f;
-    c = rowTop(dl, y, "Anti-aliasing", "Smooths jagged edges \xC2\xB7 coming soon", false);
+    y += kRowH;
+    c = rowTop(dl, y, "Anti-aliasing", "Smooths jagged edges (FXAA, as in PCSX2)", false);
     combo("##aa", c, &g_edit.antiAliasing, kAa, 2);
-    y += 60.0f;
-    c = rowTop(dl, y, "Sharpening (CAS)", "Brings back detail after upscaling \xC2\xB7 on/off for now", false);
+    y += kRowH;
+    c = rowTop(dl, y, "Anisotropic filtering", "Cleaner floors and walls seen at an angle", false);
+    combo("##aniso", c, &g_edit.anisotropic, kAniso, 5);
+    y += kRowH;
+    c = rowTop(dl, y, "Sharpening (CAS)", "Brings back detail after upscaling \xC2\xB7 0 turns it off", false);
     slider(dl, "##sharpening", c, &g_edit.sharpening);
-    y += 60.0f;
-    c = rowTop(dl, y, "Vertical sync", "Prevents screen tearing \xC2\xB7 coming soon", false);
+    y += kRowH;
+    c = rowTop(dl, y, "Vertical sync", "Prevents screen tearing", false);
     checkbox(dl, "##vsync", c, &g_edit.vsync, "On");
-    y += 60.0f;
+    y += kRowH;
     c = rowTop(dl, y, "FPS counter", "Show it at startup (F10 toggles it)", true);
     checkbox(dl, "##fps", c, &g_edit.showFps, "Show");
 }

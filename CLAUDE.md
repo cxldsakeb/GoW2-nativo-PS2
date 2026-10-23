@@ -64,6 +64,16 @@ Same as in GoW1: **DeepSeek V4.1 Flash, free on OpenCode**, for high-volume read
 
 > Update this section when closing each milestone, so that everyone's sessions see it.
 
+### Phase 4: bubbles, steam, wavy lines and every launcher setting (DaniSBR1, 2026-10-22)
+
+**After the `git pull`:** `git submodule update --init --recursive` (submodule at **`379fa48`**), **`recompile.ps1` with `GOW_VU1_MICROCODIGO` and `GOW_IOP_MODULOS` set** (`config/recomp.template.toml` changed; on DaniSBR1's PC it became a full runner build, ~20 min) and `.\scripts\build-launcher.ps1`.
+
+- **Blocker 25, the bubbles and the steam:** in the bath room the bubbles came out stacked in white columns and the steam as one white blob (the "excessive light"). The template stubbed the game's `rand` with the host's, which only goes up to `0x7FFF`; GoW II's goes up to `0x7FFFFFFF` and every particle got the same offset. `rand` is no longer stubbed. **GoW1 has the same stub** (`rand@0x0028C0C8`): cxldsakeb, worth checking there.
+- **Blockers 24 and 26 (fork):** the wavy lines under water and in the underworld (sprite edges now on the pixels the GS covers, like PCSX2's `alignSprite`) and the bubbles drawn as square fragments at scale. **Checked by DaniSBR1 playing.**
+- **Launcher:** every Graphics setting now reaches the game: 16:9 / 4:3, borderless fullscreen at startup, FXAA (PCSX2's), anisotropic filtering (new row, up to 16x), adjustable sharpening (0 = off) and vsync. The game no longer shows a pink screen at startup, and the Runtime Debugger starts hidden (F1 opens it).
+- **New method:** a PCSX2 GS dump of the same room (Shift+F8) read with `tools/gsdump/gsdump_draws.py`, compared draw by draw with the port's local F8 log. Details in NOTES.md ("Repository status", "Blockers", "Launcher").
+- **Next, for DaniSBR1:** the filtering at internal scales x2 and x4. Also open: speed to a steady 60, the videos stretched to 16:9, the second cutscene's flicker, the moving pixelated filter.
+
 ### Phase 4: the lines at scale 3 (blocker 23) and the launcher comes back (DaniSBR1, 2026-10-21)
 
 **After the `git pull`:** `git submodule update --init --recursive` (submodule at **`1d9f4b6`**), `cmake --build` (only `gs_hw_backend.cpp` changes) and, for the launcher, `.\scripts\build-launcher.ps1`.

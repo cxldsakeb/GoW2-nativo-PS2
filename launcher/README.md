@@ -9,9 +9,13 @@ A small window to adjust the port's settings before starting the game, so that n
 | Setting | Passed to the runner as | Status |
 |---|---|---|
 | Internal resolution | `PS2X_GS_HW_SCALE=1..4` | works |
+| Aspect ratio | `GOW_ASPECT=16:9` / `4:3` | works: 4:3 turns the game's widescreen off (what its own options would write) and presents 4:3, no regeneration needed |
+| Window mode at startup | `GOW_FULLSCREEN=1` (borderless) / `0` | works; F12 still switches it in game |
+| Anti-aliasing | `GOW_FXAA=1` / `0` | works: PCSX2's FXAA settings, on the frame at the internal resolution |
+| Anisotropic filtering | `GOW_ANISO=1` (off) / `2` / `4` / `8` / `16` | works: up to N bilinear taps along the footprint of textures seen at an angle (palettised ones too, in the shader) |
+| Sharpening | `GOW_SCALER=sharp` + `GOW_SHARPEN=0.00..1.00` | works: CAS strength; 0 keeps the bicubic upscale without sharpening |
+| Vertical sync | `GOW_VSYNC=1` / `0` | works; the 60 FPS limiter stays on either way |
 | FPS counter | `GOW_SHOW_FPS=1` | works |
-| Sharpening | `GOW_SCALER=sharp` (> 0) / `bilinear` (0) | on/off only: the present pass has a fixed light sharpen |
-| Aspect ratio, window mode at startup, anti-aliasing, vertical sync | — | the runtime has no switch yet (16:9 is built in); marked "coming soon" in the window |
 
 ```ini
 ; God of War II native port: launcher settings (written by GoW2Launcher)
@@ -20,6 +24,7 @@ resolution=2x          ; 1x | 2x | 3x | 4x
 aspect_ratio=16:9      ; 16:9 | 4:3
 window_mode=borderless ; windowed | borderless
 anti_aliasing=fxaa     ; off | fxaa
+anisotropic=8x         ; off | 2x | 4x | 8x | 16x
 sharpening=40          ; 0..100
 vsync=1
 show_fps=0
@@ -45,4 +50,4 @@ The executable ends up in `out\launcher-build\Release\GoW2Launcher.exe`, with it
 
 ## Next
 
-Add to the runtime what does not exist yet (aspect ratio switch, borderless fullscreen at startup, FXAA, adjustable CAS sharpening, vertical sync) and pass it from the launcher; fill in the Performance, Controls and Audio tabs.
+Fill in the Performance, Controls and Audio tabs.
