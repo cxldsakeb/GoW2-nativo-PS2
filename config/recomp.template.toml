@@ -47,7 +47,9 @@ stubs = [
   "__divdi3@0x002BF830",
   # "exit": no está enlazado en GoW II (ver NOTES.md)
   "memcmp@0x002C6A38",
-  "rand@0x002C8448",
+  # "rand" (0x002C8448) is NOT stubbed: the runtime's stub returns the host rand() (0..0x7FFF), while the game's
+  # newlib rand returns 0..0x7FFFFFFF and the game scales it by 2^-31, so every particle got the same "random"
+  # offset (bubbles stacked in one column, the bath steam in one blob). The game's own LCG is recompiled instead.
   "strrchr@0x002C94F0",
   "write@0x002CFEE8",
   # "read": no está enlazado en GoW II (ver NOTES.md)

@@ -578,11 +578,15 @@ namespace
         // nemesis2000): the game's widescreen flag (its Options menu setting) and three aspect floats (16/9), written
         // every frame because loading a save restores the saved options. The pnach's Hor+ instruction (0x234A48) is
         // applied by the recompiler: [patches] in config/recomp.template.toml.
-        rdram[0x002D86D8u] = 1u;
+        // GOW_ASPECT=4:3 (the launcher's "4:3 original") writes what the game's own options setter (0x1E1A08) writes
+        // with widescreen off: flag 0 and 4/3. The patched instruction then computes the same as the original one
+        // (it only differs when 0x363810 is not 4/3), so no regeneration is needed to switch.
+        static const bool widescreen = [] { const char *v = std::getenv("GOW_ASPECT"); return !(v && std::strcmp(v, "4:3") == 0); }();
+        rdram[0x002D86D8u] = widescreen ? 1u : 0u;
         for (uint32_t address : {0x0032F300u, 0x0032F338u, 0x00363810u})
         {
-            const uint32_t aspect169 = 0x3FE38E39u;
-            std::memcpy(rdram + address, &aspect169, sizeof(aspect169));
+            const uint32_t aspect = widescreen ? 0x3FE38E39u : 0x3FAAAAABu; // 16/9 : 4/3
+            std::memcpy(rdram + address, &aspect, sizeof(aspect));
         }
 
         uint8_t *buffer = gow2PadBuffer(rdram, GPR_U32(ctx, 5), 18);
