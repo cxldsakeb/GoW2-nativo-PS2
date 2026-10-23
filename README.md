@@ -27,9 +27,12 @@ The port running on PC (October 2026, internal resolution x2): the title screen,
 - **Cutscenes** at 30 frames per second, with the audio in sync.
 - **First playable area (Rhodes)** with sound, scenery, shadows and combat.
 - **Memory card:** formats, saves and loads.
+- **Real 16:9** (more view at the sides, not a stretched 4:3) or the original 4:3.
+- **Higher internal resolutions** without the usual upscaling glitches: the ghost, the edge bands and the lines at scale 3, the wavy lines under water and in the underworld, and the bubbles and steam of the bath room are fixed.
 - **Speed:** 60 FPS in the menu and ~44–59 FPS in the first area with combat (measured on a team member's PC), with the VU1 and the IOP compiled to native code.
+- **Launcher** to choose the graphics settings and start the game (see below).
 
-What's missing: some graphics glitches (a blue line that follows Kratos, wavy lines under water, a "ghost" to his left), checking the rest of the game beyond the first area, and reaching a stable 60 FPS in combat.
+What's missing: a few graphics glitches (the filtering at internal scales x2 and x4, the videos still stretched to 16:9, a flicker in the second cutscene, a moving pixelated filter), checking the rest of the game beyond the first area, and reaching a stable 60 FPS in combat.
 
 | Phase | Status |
 |---|---|
@@ -37,7 +40,7 @@ What's missing: some graphics glitches (a blue line that follows Kratos, wavy li
 | 1. Function map and recompiler configuration | Done: 6,607 functions, 76 Sony library stubs, 240 hardware register accesses |
 | 2. First boot | Done: loads the 8 IOP modules, reads the disc and reaches the title screen |
 | 3. Menu and videos | Done |
-| 4. Playable at full speed | In progress: 18 blockers solved so far; graphics details and combat speed remain |
+| 4. Playable at full speed | In progress: 26 blockers solved so far; a few graphics details and combat speed remain |
 
 Details in [docs/ROADMAP.md](docs/ROADMAP.md). Every blocker, with its cause and its fix, is in [docs/NOTES.md](docs/NOTES.md): it is also a good guide to how a PS2 game is brought to PC with PS2Recomp.
 
@@ -47,7 +50,7 @@ You need Windows, Visual Studio 2022 and your copy of the game. Follow [docs/SET
 
 **Controls:** a PC controller or the keyboard. Keyboard: arrows = D-pad, `Z`/`X`/`C`/`V` = square/cross/circle/triangle, `Enter` = Start, `Q`/`E` = L1/R1, `1`/`3` = L2/R2, `WASD` and `IJKL` = sticks.
 
-**Launcher (optional):** `.\scripts\build-launcher.ps1 -Run` builds and opens a small window to choose the graphics settings (internal resolution, 16:9 or 4:3, fullscreen at startup, FXAA, anisotropic filtering, sharpening, vsync, FPS counter) and start the game with **PLAY**, without recompiling anything. Details in [launcher/README.md](launcher/README.md).
+**Launcher (optional):** `.\scripts\build-launcher.ps1 -Run` builds and opens a small window to choose the graphics settings (internal resolution, 16:9 or 4:3, fullscreen at startup, FXAA, anisotropic filtering, sharpening, vsync, FPS counter) and start the game with **PLAY**, without recompiling anything. It hides while you play and comes back when the game closes, so you can try other settings. Details in [launcher/README.md](launcher/README.md).
 
 **Window keys:** `F12` = fullscreen / windowed · `F10` = FPS counter (like PCSX2's) · `F1` = debug panel.
 
