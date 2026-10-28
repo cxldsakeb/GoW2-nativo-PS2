@@ -36,7 +36,7 @@ referencia/gow1/                         GoW1 configuration and overrides (KIexs
 
 - **`config/` is empty at the start.** `recompile.ps1` expects `config/recomp.template.toml` (with `@ELF@`, `@MAP@` and `@OUT@`) and `config/funcmap.csv` (`Name,Start,End,Size`). Building them is phase 1 (see `docs/ROADMAP.md`): Ghidra provides the function map, and GoW1's template (`referencia/gow1/config/recomp.template.toml`) serves as the model for the stubs and the `[mmio]` table, **looking up the equivalent addresses in GoW II's ELF**.
 - **Ghidra:** 12.1.4 + the ghidra-emotionengine-reloaded extension (`r5900:LE:32:default`) + JDK 21. The project lives in `ghidra/` (ignored). Ghidra does not see functions that are only called through a pointer (virtual methods): after each export, `py -3 tools/scan_missing_functions.py`.
-- **Native IOP and VU1** (the big speed gain in GoW1, from 7–8 to ~60 FPS): they are generated from game data captured locally. See section 7b of `docs/SETUP.md`. To capture the VU1 you need `GOW_VU1_NATIVE_OFF=1` and the folder must exist.
+- **Native IOP and VU1** (the big speed gain in GoW1, from 7–8 to ~60 FPS): they are generated from game data captured locally. See section 7b of `docs/SETUP.md`. To capture the VU1 the folder must exist; since fork `afd5c2c` it also captures with the native VU1 on (only the microprograms that are still missing), so new areas can be captured while playing at full speed.
 - **When copying overrides by hand, update their timestamp** (`(Get-Item $destino).LastWriteTime = Get-Date`): otherwise MSBuild may not recompile them.
 - **Unity build:** several overrides share a compilation unit. Use per-file prefixes (`kIop…`, `g_iop…`) and make sure `PS2_REGISTER_GAME_OVERRIDE` does not fall on the same line as in another override (use `__LINE__`).
 - The scripts are in PowerShell 5.1 and are saved in UTF-8 **with BOM**.
@@ -63,6 +63,15 @@ Same as in GoW1: **DeepSeek V4.1 Flash, free on OpenCode**, for high-volume read
 ## Current status
 
 > Update this section when closing each milestone, so that everyone's sessions see it.
+
+### Phase 4: speed, 50–60 FPS in combat with the asynchronous mode (cxldsakeb, 2026-10-28)
+
+**After the `git pull`:** `git submodule update --init --recursive` (submodule at **`afd5c2c`**), `recompile.ps1 -SyncOnly` with `GOW_VU1_MICROCODIGO` and `GOW_IOP_MODULOS` set and build the runner (`ps2_memory.h` changed: most of the runtime library rebuilds).
+
+- **Slow areas were VU1 microprograms never captured** (Typhon's Cavern: 16 → 35–55 FPS once captured). `GOW_VU1_CAPTURA` now works with the native VU1 on, so **capture while playing** whenever you reach a new area (SETUP.md, 7b).
+- Fork: `glGetError` once per frame instead of after every batch (it was ~45 % of the GS thread), reused DMA buffers (the FPS used to drop from 59 to 51 over 10 min), fast VIF1 `UNPACK` and other small costs. Default mode, first area: ~42 → ~46.
+- **Asynchronous mode, optional and off by default:** `GOW2_NO_FINISH_WAIT=1` + `GOW_GS_DISPLAY_ASINCRONO=1` lets the EE build the next frame while the VU1 draws the previous one: **50–60 FPS in combat**, stable over 10 min, no hangs (the hang it had, a lost FINISH, is fixed). Only automatic tests so far: **cxldsakeb, play with both on** and decide whether the launcher turns them on by default.
+- **Next limit: the VIF1/VU1 thread** (90–94 % busy in combat). New tool: `GOW2_HOST_PROFILE=5` (thread profiler). Details in NOTES.md, "Speed: the road to 60 FPS".
 
 ### Phase 4: bubbles, steam, wavy lines and every launcher setting (DaniSBR1, 2026-10-22)
 

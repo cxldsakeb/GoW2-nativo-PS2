@@ -89,7 +89,7 @@ For when GoW II already boots (phase 4). Without this the VU1 is interpreted and
 # 1. Capture (a ~3 min playthrough up to the first playable area). The folders have to exist.
 New-Item -ItemType Directory -Force out\capturas\vu1, out\capturas\iop
 $env:GOW_VU1_CAPTURA = "$PWD\out\capturas\vu1"       # VU1 microprograms
-$env:GOW_VU1_NATIVE_OFF = '1'                         # without this nothing is captured
+$env:GOW_VU1_NATIVE_OFF = '1'                         # optional since fork afd5c2c (see below)
 $env:PS2X_IOP_DUMP_MODULES = "$PWD\out\capturas\iop"  # the game's 8 IRX
 $env:GOW2_PAD_SCRIPT = '15:start,20-120/3:x'         # gets to the first area on its own (or play with the keyboard)
 .\scripts\run.ps1 -Config RelWithDebInfo -NoBuild    # close it after ~4 min: the more you play, the more microprograms
@@ -104,6 +104,7 @@ $env:GOW_IOP_MODULOS = "$PWD\out\capturas\iop"
 
 - With `$env:GOW_VU1_STATS = '1'`, the log says how many VU1 pairs are interpreted: with everything captured, 0.
 - In GoW II (cxldsakeb's PC, 2026-10-16): 4 min of capture give ~1,000 VU1 microprograms and the 8 IRX; step 2 takes ~20 min (it generates and builds the VU1). The `GOW_VU1_MICROCODIGO` and `GOW_IOP_MODULOS` variables have to be set on **every** `recompile.ps1`: without them, CMake reconfigures itself without native VU1.
+- **New areas run slowly until they are captured** (Typhon's Cavern: 16 FPS, then 35–55). Since fork `afd5c2c`, `GOW_VU1_CAPTURA` also works with the native VU1 on: it saves only the microprograms that are still missing, at full speed. Play through the new areas with only `GOW_VU1_CAPTURA` set (into the same folder), then repeat step 2.
 - Memory card: `$env:GOW_MC0 = "$PWD\game\disc\play.mcd"` (it is created automatically).
 
 ## 8. Recommended helper tools

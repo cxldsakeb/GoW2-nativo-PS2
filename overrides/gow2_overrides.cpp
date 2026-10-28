@@ -390,6 +390,25 @@ namespace
         FUN_00190a08_0x190a08(rdram, ctx, runtime);
     }
 
+    // GOW2_NO_FINISH_WAIT=1 (experiment, with GOW_GS_DISPLAY_ASINCRONO=1): 0x14E380/0x14E4F8/0x14E670 hand a frame to
+    // the GS ([0x2D8104] = 1) and then wait in 0x18ADD0 until the GS interrupt handler (0x18A278) sees FINISH and sets
+    // [0x2D8104] = 2. On the PC the frame's VU1 work runs on another thread from a copy of the DMA data (sendDmaChain),
+    // so the EE does not need to wait for it before building the next frame: EE and VU1 overlap instead of adding up.
+    // Only skipped for 0x14E380, the gameplay frame: the next frame starts in 0x186E08, which waits for the same flag
+    // before sending again, so there is at most one frame in flight. 0x14E4F8/0x14E670 (boot, loading screens) send
+    // frames back to back without that wait; skipping it there let two FINISH events merge into one interrupt and the
+    // flag stayed at 1 forever (the boot hung).
+    void gow2FrameWait(uint8_t *rdram, R5900Context *ctx, PS2Runtime *runtime)
+    {
+        const uint32_t ra = GPR_U32(ctx, 31);
+        if (ra >= 0x0014E380u && ra < 0x0014E4F8u)
+        {
+            ctx->pc = ra;
+            return;
+        }
+        FUN_0018add0_0x18add0(rdram, ctx, runtime);
+    }
+
     // ---- Mando: libpad2 en el EE ----
     // Adaptado de GoW1 (referencia/gow1/overrides/gow_overrides.cpp y gow_pad2_packet.h, Waffle565 vía KIexster, GPLv3).
     // God of War II lee el mando en el EE con libpad2 (sockets y un paquete de 18 bytes), que habla con el driver
@@ -665,6 +684,8 @@ namespace
         const bool ipu = runtime.replaceFunction(0x002B56F0u, gow2IpuInit); // sceIpuInit (bloqueo 11)
         const bool movieIdle = runtime.replaceFunction(0x00190A08u, gow2MovieIdle); // espera de los vídeos
         std::fprintf(stderr, "[gow2-override] sceIpuInit=%d movieIdle=%d\n", ipu, movieIdle);
+        if (std::getenv("GOW2_NO_FINISH_WAIT"))
+            std::fprintf(stderr, "[gow2-override] noFinishWait=%d\n", runtime.replaceFunction(0x0018ADD0u, gow2FrameWait));
 
         // Contador F10: GoW II dibuja todos los frames en un solo búfer de pantalla (sin flips) y el GS recibe un frame
         // por VBlank haga lo que haga el juego, así que marcaba 60 siempre. 0x14E380 entrega cada frame al GS, una vez
