@@ -64,14 +64,16 @@ Same as in GoW1: **DeepSeek V4.1 Flash, free on OpenCode**, for high-volume read
 
 > Update this section when closing each milestone, so that everyone's sessions see it.
 
-### Phase 4: speed, 50–60 FPS in combat with the asynchronous mode (cxldsakeb, 2026-10-28)
+### Phase 4: speed, 60 FPS in combat with the asynchronous mode (cxldsakeb, 2026-10-28)
 
-**After the `git pull`:** `git submodule update --init --recursive` (submodule at **`afd5c2c`**), `recompile.ps1 -SyncOnly` with `GOW_VU1_MICROCODIGO` and `GOW_IOP_MODULOS` set and build the runner (`ps2_memory.h` changed: most of the runtime library rebuilds).
+**After the `git pull`:** `git submodule update --init --recursive` (submodule at **`55cadbf`**), `recompile.ps1 -SyncOnly` with `GOW_VU1_MICROCODIGO` and `GOW_IOP_MODULOS` set and build the runner (`ps2_memory.h` changed: most of the runtime library rebuilds). If you already had `afd5c2c` built: only `cmake --build` (one file).
+
+- **Update, fork `55cadbf`:** the VIF1/VU1 thread lost ~35 % of its time in the Windows heap, copying every VIF1 `DIRECT` packet; now they go straight to the GS. First area, 10 min of combat: **59.7 FPS on average with the asynchronous mode (minimum 57)**, and **51–53 in the default mode** (was ~46).
 
 - **Slow areas were VU1 microprograms never captured** (Typhon's Cavern: 16 → 35–55 FPS once captured). `GOW_VU1_CAPTURA` now works with the native VU1 on, so **capture while playing** whenever you reach a new area (SETUP.md, 7b).
 - Fork: `glGetError` once per frame instead of after every batch (it was ~45 % of the GS thread), reused DMA buffers (the FPS used to drop from 59 to 51 over 10 min), fast VIF1 `UNPACK` and other small costs. Default mode, first area: ~42 → ~46.
-- **Asynchronous mode, optional and off by default:** `GOW2_NO_FINISH_WAIT=1` + `GOW_GS_DISPLAY_ASINCRONO=1` lets the EE build the next frame while the VU1 draws the previous one: **50–60 FPS in combat**, stable over 10 min, no hangs (the hang it had, a lost FINISH, is fixed). Only automatic tests so far: **cxldsakeb, play with both on** and decide whether the launcher turns them on by default.
-- **Next limit: the VIF1/VU1 thread** (90–94 % busy in combat). New tool: `GOW2_HOST_PROFILE=5` (thread profiler). Details in NOTES.md, "Speed: the road to 60 FPS".
+- **Asynchronous mode, optional and off by default:** `GOW2_NO_FINISH_WAIT=1` + `GOW_GS_DISPLAY_ASINCRONO=1` lets the EE build the next frame while the VU1 draws the previous one: 50–60 FPS in combat (60 with `55cadbf`), stable over 10 min, no hangs (the hang it had, a lost FINISH, is fixed). Only automatic tests so far: **cxldsakeb, play with both on** and decide whether the launcher turns them on by default.
+- **The VIF1/VU1 thread is still the busiest** (~86 %, now real work: native VU1 and `UNPACK`). New tool: `GOW2_HOST_PROFILE=5` (thread profiler). Details in NOTES.md, "Speed: the road to 60 FPS".
 
 ### Phase 4: bubbles, steam, wavy lines and every launcher setting (DaniSBR1, 2026-10-22)
 
